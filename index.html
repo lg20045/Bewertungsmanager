@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BewertungsManager</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#f5f7fa;--card:#fff;--text:#17202a;--muted:#697586;--line:#e0e5eb;--soft:#f7f8fa;--green:#198754;--yellow:#b7791f;--red:#c53030;--blue:#315a9b}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding:22px 18px 60px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px}
+.logo{font-weight:800;font-size:21px;letter-spacing:-.4px}.badge{font-size:12px;background:#e9eef7;color:var(--blue);padding:7px 10px;border-radius:999px}
+.hero{margin:18px 0 25px}.hero h1{font-size:clamp(31px,6vw,48px);line-height:1.03;letter-spacing:-1.8px;margin:0 0 10px}.hero p{font-size:17px;color:var(--muted);margin:0}
+.nav{display:flex;gap:8px;margin:0 0 22px;background:#e9edf2;padding:5px;border-radius:13px}
+.nav button{margin:0;background:transparent;color:#5d6877;border:0;padding:10px 15px;border-radius:9px;font-size:14px;font-weight:750;width:auto}
+.nav button.active{background:#fff;color:var(--text);box-shadow:0 1px 4px rgba(20,30,45,.08)}
+.view{display:none}.view.active{display:block}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:17px;box-shadow:0 5px 20px rgba(20,30,45,.04)}
+.stat .num{font-size:28px;font-weight:800;letter-spacing:-1px}.stat .label{font-size:12px;color:var(--muted);margin-top:4px;font-weight:650}
+.stat.red .num{color:var(--red)}.stat.yellow .num{color:var(--yellow)}.stat.green .num{color:var(--green)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:19px;box-shadow:0 7px 25px rgba(20,30,45,.05);margin-bottom:18px}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.panel-head h2{font-size:19px;margin:0;letter-spacing:-.3px}.sub{font-size:12px;color:var(--muted)}
+.filters{display:flex;gap:8px;overflow:auto;padding-bottom:2px;margin-bottom:13px}
+.filter{white-space:nowrap;width:auto;margin:0;padding:8px 12px;border:1px solid var(--line);background:#fff;color:#566170;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
+.filter.active{background:var(--text);color:#fff;border-color:var(--text)}
+.review-list{display:grid;gap:10px}
+.review{border:1px solid var(--line);border-radius:14px;padding:15px;background:#fff}
+.review-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.stars{font-size:14px;letter-spacing:1px}.date{font-size:11px;color:#8a929e}
+.review-text{font-size:14px;line-height:1.5;margin:9px 0 12px}.review-foot{display:flex;justify-content:space-between;align-items:center;gap:10px}.status{font-size:11px;font-weight:750;padding:5px 8px;border-radius:999px}.status.new{background:#fff0f0;color:var(--red)}.status.open{background:#fff7e8;color:var(--yellow)}.status.done{background:#edf8f1;color:var(--green)}
+.small-btn{width:auto;margin:0;padding:9px 12px;font-size:12px;border-radius:9px;background:var(--text);color:#fff;border:0;font-weight:750;cursor:pointer}
+.empty{display:none;text-align:center;padding:25px;color:var(--muted);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 10px 35px rgba(20,30,45,.06)}
+label{display:block;font-size:13px;font-weight:750;margin:0 0 8px;color:#394454}
+textarea,input,select{width:100%;border:1px solid #d8dde5;border-radius:12px;padding:13px 14px;font:inherit;background:#fff;outline:none;color:var(--text)}
+textarea{min-height:150px;resize:vertical}input:focus,textarea:focus,select:focus{border-color:#7184a5;box-shadow:0 0 0 3px rgba(90,115,155,.12)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:15px}
+.primary{width:100%;border:0;border-radius:12px;padding:14px 18px;font-size:15px;font-weight:750;cursor:pointer;background:var(--text);color:#fff;margin-top:17px}.primary:disabled{opacity:.55;cursor:wait}
+.result{display:none;margin-top:22px}.answer{white-space:pre-wrap;line-height:1.6;font-size:16px;background:#f7f8fa;border-radius:13px;padding:17px;border:1px solid #e1e5ea}
+.secondary{width:100%;border-radius:12px;padding:13px 18px;font-size:14px;font-weight:750;cursor:pointer;background:#fff;color:var(--text);border:1px solid #d8dde5;margin-top:10px}
+.small{font-size:12px;color:#7b8491;line-height:1.5;margin-top:10px}.error{color:#b42318;background:#fff1f0;border:1px solid #ffd0cb;padding:12px;border-radius:10px;display:none;margin-top:14px}
+details{margin-top:20px}summary{cursor:pointer;font-size:13px;font-weight:750;color:#566170}.keybox{margin-top:12px}
+.notice{font-size:12px;color:#6b7481;background:#f5f7fa;border:1px solid var(--line);border-radius:11px;padding:11px;margin-top:14px;line-height:1.45}
+footer{text-align:center;color:#8a929e;font-size:12px;margin-top:28px}
+@media(max-width:700px){.stats{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.wrap{padding-top:18px}header{margin-bottom:22px}.panel,.card{padding:16px}.hero p{font-size:15px}.review-foot{align-items:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><div class="logo">BewertungsManager</div><div class="badge">MVP · Gemini 3 Flash</div></header>
+
+<div class="nav">
+  <button class="navbtn active" data-view="dashboard">Dashboard</button>
+  <button class="navbtn" data-view="generator">Antwort erstellen</button>
+</div>
+
+<section id="dashboard" class="view active">
+  <div class="hero">
+    <h1>Deine Bewertungen.<br>Einfach im Griff.</h1>
+    <p>Neue, kritische und positive Bewertungen auf einen Blick.</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="num" id="totalCount">23</div><div class="label">Bewertungen</div></div>
+    <div class="stat"><div class="num">4,7 ★</div><div class="label">Durchschnitt</div></div>
+    <div class="stat red"><div class="num" id="newCount">3</div><div class="label">Neu / kritisch</div></div>
+    <div class="stat green"><div class="num" id="doneCount">12</div><div class="label">Beantwortet</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div><h2>Bewertungen</h2><div class="sub">Demo-Daten · später direkt aus Google</div></div>
+      <button class="small-btn" id="newReviewBtn">+ Neue Bewertung</button>
+    </div>
+    <div class="filters">
+      <button class="filter active" data-filter="all">Alle</button>
+      <button class="filter" data-filter="new">Neu</button>
+      <button class="filter" data-filter="critical">Kritisch</button>
+      <button class="filter" data-filter="positive">Positiv</button>
+    </div>
+    <div id="reviewList" class="review-list"></div>
+    <div id="empty" class="empty">Keine Bewertungen in diesem Filter.</div>
+  </div>
+
+  <div class="notice">Die angezeigten Bewertungen sind aktuell Demo-Daten. Der nächste Integrationsschritt ist die Verbindung mit dem Google Business Profile, damit neue Bewertungen automatisch erscheinen.</div>
+</section>
+
+<section id="generator" class="view">
+  <div class="hero">
+    <h1>Antwort erstellen</h1>
+    <p>Eine passende Antwort in wenigen Sekunden.</p>
+  </div>
+
+  <div class="card">
+    <label for="review">Bewertung</label>
+    <textarea id="review" placeholder='z. B. "Super Service, freundliches Personal und schnelle Lieferung. Gerne wieder!"'></textarea>
+
+    <div class="grid">
+      <div><label for="company">Unternehmen</label><input id="company" placeholder="z. B. Mustermann GmbH"></div>
+      <div><label for="industry">Branche</label>
+        <select id="industry">
+          <option>Restaurant</option><option>Friseur & Beauty</option><option>Handwerk</option><option>Autohandel</option><option>Fitnessstudio</option><option>Hotel</option><option>Einzelhandel</option><option>Andere</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div><label for="tone">Ton</label>
+        <select id="tone">
+          <option>Professionell</option><option>Freundlich & persönlich</option><option>Locker & modern</option><option>Kurz & direkt</option><option>Hochwertig & elegant</option>
+        </select>
+      </div>
+      <div><label for="details">Zusätzliche Infos (optional)</label><input id="details" placeholder="z. B. Stammkunden sind uns wichtig"></div>
+    </div>
+
+    <details>
+      <summary>Gemini API-Key eingeben</summary>
+      <div class="keybox">
+        <input id="key" type="password" placeholder="AIza...">
+        <div class="small">Der Schlüssel wird von dieser Seite nicht gespeichert. Für einen echten öffentlichen SaaS-Betrieb sollte der API-Key serverseitig geschützt werden.</div>
+      </div>
+    </details>
+
+    <button class="primary" id="generate">Antwortvorschlag erstellen</button>
+    <div id="error" class="error"></div>
+
+    <div id="result" class="result">
+      <label>Antwortvorschlag</label>
+      <div id="answer" class="answer"></div>
+      <button class="secondary" id="copy">Antwort kopieren</button>
+      <button class="secondary" id="markDone">Als beantwortet markieren</button>
+    </div>
+  </div>
+</section>
+
+<footer>BewertungsManager · MVP</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+const reviews=[
+ {id:1,rating:5,text:"Sehr gutes Essen und super freundlicher Service. Wir kommen gerne wieder!",date:"Heute",status:"new",type:"positive"},
+ {id:2,rating:2,text:"Das Essen war okay, aber wir mussten fast eine Stunde auf unsere Bestellung warten.",date:"Heute",status:"new",type:"critical"},
+ {id:3,rating:1,text:"Nie wieder. Viel zu teuer und das Essen war leider kalt.",date:"Gestern",status:"new",type:"critical"},
+ {id:4,rating:5,text:"Top Laden! Schneller Service und leckeres Essen.",date:"Gestern",status:"done",type:"positive"},
+ {id:5,rating:4,text:"Gute Auswahl und schönes Ambiente. Beim Service war heute etwas viel los.",date:"Vor 2 Tagen",status:"done",type:"positive"}
+];
+
+let activeReviewId=null;
+let currentFilter="all";
+
+function stars(n){return "★".repeat(n)+"☆".repeat(5-n)}
+function renderReviews(){
+  const list=$("reviewList"); list.innerHTML="";
+  let shown=reviews.filter(r=>{
+    if(currentFilter==="all") return true;
+    if(currentFilter==="new") return r.status==="new";
+    if(currentFilter==="critical") return r.type==="critical";
+    if(currentFilter==="positive") return r.type==="positive";
+    return true;
+  });
+  $("empty").style.display=shown.length?"none":"block";
+  shown.forEach(r=>{
+    const el=document.createElement("div"); el.className="review";
+    const statusText=r.status==="done"?"Beantwortet":"Neu";
+    el.innerHTML=`
+      <div class="review-top"><div class="stars">${stars(r.rating)}</div><div class="date">${r.date}</div></div>
+      <div class="review-text">${escapeHtml(r.text)}</div>
+      <div class="review-foot">
+        <span class="status ${r.status==="done"?"done":r.type==="critical"?"new":"open"}">${statusText}</span>
+        ${r.status==="done"?"":"<button class='small-btn' data-id='"+r.id+"'>Antwort erstellen</button>"}
+      </div>`;
+    const btn=el.querySelector("button");
+    if(btn) btn.onclick=()=>loadReview(r.id);
+    list.appendChild(el);
+  });
+  updateStats();
+}
+function updateStats(){
+  $("newCount").textContent=reviews.filter(r=>r.status==="new").length;
+  $("doneCount").textContent=12+reviews.filter(r=>r.status==="done").length-2;
+  $("totalCount").textContent=23+reviews.length-5;
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+
+function loadReview(id){
+  const r=reviews.find(x=>x.id===id); if(!r)return;
+  activeReviewId=id;
+  $("review").value=r.text;
+  $("result").style.display="none"; hideError();
+  showView("generator");
+}
+
+function showView(name){
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  $(""+name).classList.add("active");
+  document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active",b.dataset.view===name));
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+document.querySelectorAll(".navbtn").forEach(b=>b.onclick=()=>showView(b.dataset.view));
+document.querySelectorAll(".filter").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".filter").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); currentFilter=b.dataset.filter; renderReviews();
+});
+$("newReviewBtn").onclick=()=>{activeReviewId=null;$("review").value="";$("result").style.display="none";hideError();showView("generator");};
+
+const shortPositive={
+ "gutes essen":"Vielen Dank für Ihre Bewertung! Schön, dass Ihnen unser Essen gefallen hat. Wir freuen uns auf Ihren nächsten Besuch.",
+ "sehr gutes essen":"Vielen Dank für Ihre Bewertung! Schön, dass Ihnen unser Essen so gut gefallen hat. Wir freuen uns auf Ihren nächsten Besuch.",
+ "top":"Vielen Dank für Ihre Bewertung! Schön, dass Sie zufrieden waren. Wir freuen uns auf Ihren nächsten Besuch.",
+ "super":"Vielen Dank für Ihre Bewertung! Schön, dass Sie zufrieden waren. Wir freuen uns auf Ihren nächsten Besuch.",
+ "sehr gut":"Vielen Dank für Ihre Bewertung! Schön, dass Sie zufrieden waren. Wir freuen uns auf Ihren nächsten Besuch."
+};
+
+function looksIncomplete(text){
+  if(!text)return true;
+  const t=text.trim();
+  if(t.length<25)return true;
+  if(/[,:;\-]$/.test(t))return true;
+  if(/\b(bei|mit|für|auf|und|oder|dass|weil|wie|unser|unsere|unseren|Ihnen|Sie|wir|das|die|der|den)\s*$/i.test(t))return true;
+  return !/[.!?…]$/.test(t);
+}
+function genericFallback(review){
+  const r=review.toLowerCase();
+  const negative=/schlecht|nie wieder|enttäusch|kalt|teuer|unfreundlich|lange warten|wartezeit|nicht lecker|nicht gut|mangel|problem|fehler|beschwer/.test(r);
+  const positive=/gut|super|top|freundlich|lecker|empfehl|zufrieden|toll|klasse|perfekt/.test(r);
+  if(negative&&positive)return "Vielen Dank für Ihre offene Bewertung. Schön, dass Sie einige Aspekte positiv erlebt haben. Schade, dass nicht alles Ihren Erwartungen entsprochen hat. Wir nehmen Ihre Rückmeldung gerne mit.";
+  if(negative)return "Vielen Dank für Ihre offene Bewertung. Schade, dass Ihr Besuch nicht Ihren Erwartungen entsprochen hat. Wir nehmen Ihre Kritik ernst und als Anlass, unsere Leistung weiter zu verbessern.";
+  return "Vielen Dank für Ihre Bewertung! Schön, dass Sie zufrieden waren. Wir freuen uns, wenn wir Sie wieder bei uns begrüßen dürfen.";
+}
+
+$("generate").addEventListener("click",async()=>{
+  const review=$("review").value.trim(), key=$("key").value.trim();
+  $("result").style.display="none"; hideError();
+  if(!review){showError("Bitte zuerst eine Bewertung eingeben.");return}
+
+  const normalized=review.toLowerCase().replace(/[.!?]+$/,"").trim();
+  if(shortPositive[normalized]){
+    $("answer").textContent=shortPositive[normalized];
+    $("result").style.display="block";
+    return;
+  }
+  if(!key){showError("Bitte zuerst deinen Gemini API-Key eingeben.");return}
+
+  const prompt=`Du bist der Antwortassistent für ein Unternehmen. Schreibe eine natürliche, individuelle Antwort auf die Kundenbewertung.
+
+Regeln:
+- Antworte auf Deutsch.
+- Passe die Antwort exakt an den Inhalt der Bewertung an.
+- Wenn die Bewertung gemischt ist, erwähne sowohl das Positive als auch die konkrete Kritik.
+- Bei Kritik: verständnisvoll, sachlich und lösungsorientiert reagieren, ohne Schuldzuweisungen.
+- Keine Fakten, Maßnahmen, Angebote, Versprechen, Gründe oder Entschuldigungen erfinden.
+- Keine Namen erfinden.
+- Keine rechtlichen Behauptungen.
+- Keine KI-Floskeln wie "Vielen Dank für Ihr wertvolles Feedback" oder "Ihre Zufriedenheit steht für uns an erster Stelle".
+- Beginne nicht automatisch mit "Es freut uns sehr".
+- Bei sehr kurzen Bewertungen 1-2 natürliche Sätze; sonst ungefähr 2-4 Sätze.
+- Maximal 80 Wörter.
+- Gib ausschließlich die fertige Antwort aus, ohne Anführungszeichen und ohne Erklärung.
+- Die Antwort muss vollständig sein und mit einem vollständigen Satz enden.
+
+Unternehmen: ${$("company").value.trim()||"nicht angegeben"}
+Branche: ${$("industry").value}
+Ton: ${$("tone").value}
+Zusätzliche Infos: ${$("details").value.trim()||"keine"}
+
+Kundenbewertung:
+${review}`;
+
+  async function askGemini(extra=""){
+    const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-goog-api-key":key},
+      body:JSON.stringify({
+        contents:[{parts:[{text:prompt+(extra?"\n\nZUSATZ: "+extra:"")}]}],
+        generationConfig:{
+          temperature:.45,
+          maxOutputTokens:500,
+          candidateCount:1,
+          thinkingConfig:{thinkingLevel:"minimal"}
+        }
+      })
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data?.error?.message||"Gemini API Fehler");
+    const candidate=data?.candidates?.[0];
+    const text=candidate?.content?.parts?.map(p=>p.text||"").join("").trim();
+    if(!text)throw new Error("Gemini hat keine Antwort zurückgegeben.");
+    return {text,finishReason:candidate?.finishReason};
+  }
+
+  $("generate").disabled=true;$("generate").textContent="Antwort wird erstellt…";
+  try{
+    let result=await askGemini();
+    if(looksIncomplete(result.text)||result.finishReason==="MAX_TOKENS"){
+      result=await askGemini("Schreibe die vollständige Antwort jetzt noch einmal. 2 bis 4 kurze Sätze. Kein zusätzlicher Text.");
+    }
+    let text=result.text.trim();
+    if(looksIncomplete(text))text=genericFallback(review);
+    $("answer").textContent=text;$("result").style.display="block";
+  }catch(e){showError(e.message)}
+  finally{$("generate").disabled=false;$("generate").textContent="Antwortvorschlag erstellen"}
+});
+
+$("copy").onclick=async()=>{
+  try{await navigator.clipboard.writeText($("answer").textContent);$("copy").textContent="Kopiert";setTimeout(()=>$("copy").textContent="Antwort kopieren",1500)}
+  catch(e){showError("Kopieren war nicht möglich.")}
+};
+
+$("markDone").onclick=()=>{
+  if(activeReviewId){
+    const r=reviews.find(x=>x.id===activeReviewId);
+    if(r){r.status="done";renderReviews();}
+  }
+  showView("dashboard");
+};
+
+function showError(t){$("error").textContent=t;$("error").style.display="block"}
+function hideError(){$("error").style.display="none"}
+
+renderReviews();
+</script>
+</body>
+</html>
