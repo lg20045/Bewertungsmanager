@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BewertungsManager</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f6f7f9;color:#17202a}
+.wrap{max-width:900px;margin:0 auto;padding:28px 18px 60px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:55px}
+.logo{font-weight:800;font-size:21px;letter-spacing:-.4px}.badge{font-size:12px;background:#e9eef7;color:#315a9b;padding:7px 10px;border-radius:999px}
+.hero{text-align:center;margin-bottom:34px}.hero h1{font-size:clamp(34px,7vw,58px);line-height:1.02;letter-spacing:-2.2px;margin:0 0 15px}.hero p{font-size:18px;color:#697586;margin:0}
+.card{background:white;border:1px solid #e2e6eb;border-radius:20px;padding:22px;box-shadow:0 10px 35px rgba(20,30,45,.06);margin-top:22px}
+label{display:block;font-size:13px;font-weight:700;margin:0 0 8px;color:#394454}
+textarea,input,select{width:100%;border:1px solid #d8dde5;border-radius:12px;padding:13px 14px;font:inherit;background:#fff;outline:none}
+textarea{min-height:150px;resize:vertical}input:focus,textarea:focus,select:focus{border-color:#7184a5;box-shadow:0 0 0 3px rgba(90,115,155,.12)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:15px}
+button{width:100%;border:0;border-radius:12px;padding:14px 18px;font-size:15px;font-weight:750;cursor:pointer;background:#17202a;color:white;margin-top:17px}
+button:disabled{opacity:.55;cursor:wait}.result{display:none;margin-top:22px}.answer{white-space:pre-wrap;line-height:1.6;font-size:16px;background:#f7f8fa;border-radius:13px;padding:17px;border:1px solid #e1e5ea}.copy{background:#fff;color:#17202a;border:1px solid #d8dde5}
+.small{font-size:12px;color:#7b8491;line-height:1.5;margin-top:10px}.error{color:#b42318;background:#fff1f0;border:1px solid #ffd0cb;padding:12px;border-radius:10px;display:none;margin-top:14px}
+details{margin-top:20px}summary{cursor:pointer;font-size:13px;font-weight:700;color:#566170}.keybox{margin-top:12px}
+footer{text-align:center;color:#8a929e;font-size:12px;margin-top:28px}
+@media(max-width:650px){.grid{grid-template-columns:1fr}.wrap{padding-top:20px}header{margin-bottom:42px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><div class="logo">BewertungsManager</div><div class="badge">Gemini 3 Flash</div></header>
+
+<section class="hero">
+<h1>Gute Antworten.<br>Weniger Aufwand.</h1>
+<p>Erstelle professionelle Antworten auf Google-Bewertungen in Sekunden.</p>
+</section>
+
+<div class="card">
+<label for="review">Bewertung</label>
+<textarea id="review" placeholder="z. B. &quot;Super Service, freundliches Personal und schnelle Lieferung. Gerne wieder!&quot;"></textarea>
+
+<div class="grid">
+<div><label for="company">Unternehmen</label><input id="company" placeholder="z. B. Mustermann GmbH"></div>
+<div><label for="industry">Branche</label>
+<select id="industry">
+<option>Restaurant</option><option>Friseur & Beauty</option><option>Handwerk</option><option>Autohandel</option><option>Fitnessstudio</option><option>Hotel</option><option>Einzelhandel</option><option>Andere</option>
+</select></div>
+</div>
+
+<div class="grid">
+<div><label for="tone">Ton</label>
+<select id="tone">
+<option>Professionell</option><option>Freundlich & persönlich</option><option>Locker & modern</option><option>Kurz & direkt</option><option>Hochwertig & elegant</option>
+</select></div>
+<div><label for="details">Zusätzliche Infos (optional)</label><input id="details" placeholder="z. B. Stammkunden sind uns wichtig"></div>
+</div>
+
+<details>
+<summary>Gemini API-Key eingeben</summary>
+<div class="keybox">
+<input id="key" type="password" placeholder="AIza...">
+<div class="small">Der Schlüssel wird von dieser Seite nicht gespeichert. Für einen echten öffentlichen SaaS-Betrieb sollte der API-Key später serverseitig geschützt werden.</div>
+</div>
+</details>
+
+<button id="generate">Antwortvorschlag erstellen</button>
+<div id="error" class="error"></div>
+
+<div id="result" class="result">
+<label>Antwortvorschlag</label>
+<div id="answer" class="answer"></div>
+<button id="copy" class="copy">Antwort kopieren</button>
+</div>
+</div>
+<footer>BewertungsManager · MVP</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+$("generate").addEventListener("click", async ()=>{
+  const review=$("review").value.trim(), key=$("key").value.trim();
+  if(!review){showError("Bitte zuerst eine Bewertung eingeben.");return}
+  if(!key){showError("Bitte deinen Gemini API-Key eingeben.");return}
+  hideError(); $("generate").disabled=true; $("generate").textContent="Antwort wird erstellt …";
+  $("result").style.display="none";
+  const prompt=`Du bist ein sehr guter deutscher Kundenservice-Texter für Google-Bewertungen. Schreibe eine Antwort, die so klingt, als hätte ein echter Mitarbeiter des Unternehmens sie selbst geschrieben.
+
+WICHTIG: Die Antwort muss vollständig sein und direkt auf den tatsächlichen Inhalt der Bewertung eingehen. Schreibe niemals einen angefangenen oder unvollständigen Satz.
+
+Regeln:
+- Antworte ausschließlich auf Deutsch.
+- Analysiere zuerst still den Ton der Bewertung: positiv, neutral oder kritisch.
+- Bei sehr kurzen positiven Bewertungen wie "Gutes Essen", "Top" oder "Super": bedanke dich kurz und greife den konkreten positiven Punkt auf. Erfinde keine weiteren Details.
+- Bei längeren positiven Bewertungen: erwähne die wichtigsten konkreten Punkte der Bewertung und bedanke dich passend.
+- Bei neutralen oder gemischten Bewertungen: gehe sachlich auf die genannten Punkte ein, ohne künstlich positiv zu klingen.
+- Bei Kritik: zeige Verständnis, greife den konkreten Kritikpunkt auf und bleibe ruhig und lösungsorientiert. Bitte nur dann um direkten Kontakt, wenn das für die Situation sinnvoll ist.
+- Verwende keine generischen KI-Floskeln wie "Vielen Dank für Ihr wertvolles Feedback", "Wir freuen uns sehr über Ihre positive Rückmeldung" oder "Ihre Zufriedenheit steht für uns an erster Stelle".
+- Beginne nicht automatisch mit "Es freut uns sehr". Variiere den Einstieg natürlich.
+- Keine Fakten, Angebote, Versprechen, Entschuldigungsgründe oder Maßnahmen erfinden, die nicht aus der Bewertung oder den Unternehmensinfos hervorgehen.
+- Keine Namen erfinden.
+- Keine rechtlichen Behauptungen.
+- Bei einer sehr kurzen Bewertung lieber 1-2 natürliche Sätze als eine künstlich lange Antwort.
+- Bei einer normalen Bewertung ungefähr 2-4 Sätze.
+- Maximal 80 Wörter, sofern die Bewertung keine ausführlichere Antwort erfordert.
+- Gib ausschließlich die fertige Antwort aus, ohne Anführungszeichen und ohne Erklärung.
+
+Unternehmen: ${$("company").value.trim()||"nicht angegeben"}
+Branche: ${$("industry").value}
+Ton: ${$("tone").value}
+Zusätzliche Infos: ${$("details").value.trim()||"keine"}
+
+Kundenbewertung:
+${review}`;
+
+  try{
+    const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-goog-api-key":key},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.65,maxOutputTokens:220}})
+    });
+    const data=await res.json();
+    if(!res.ok) throw new Error(data?.error?.message||"Gemini API Fehler");
+    const text=data?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("").trim();
+    if(!text) throw new Error("Gemini hat keine Antwort zurückgegeben.");
+    $("answer").textContent=text; $("result").style.display="block";
+  }catch(e){showError(e.message)}
+  finally{$("generate").disabled=false;$("generate").textContent="Antwortvorschlag erstellen"}
+});
+$("copy").addEventListener("click",async ()=>{
+  await navigator.clipboard.writeText($("answer").textContent);
+  $("copy").textContent="Kopiert"; setTimeout(()=>$("copy").textContent="Antwort kopieren",1500);
+});
+function showError(t){$("error").textContent=t;$("error").style.display="block"}
+function hideError(){$("error").style.display="none"}
+</script>
+</body>
+</html>
