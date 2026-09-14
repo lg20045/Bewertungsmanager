@@ -1,5 +1,4 @@
-
-  export default {
+export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
@@ -53,9 +52,13 @@ VERBINDLICHER SCHREIBSTIL:
 VERBINDLICHE REGELN:
 - Antworte auf Deutsch.
 - Passe die Antwort exakt an den Inhalt der Bewertung an.
+- Jede konkrete Zusatzangabe oder Anweisung des Nutzers ist verbindlich und muss in der fertigen Antwort umgesetzt werden, sofern sie nicht einer anderen verbindlichen Vorgabe widerspricht.
+- Zusatzangaben sind keine bloßen Informationen, sondern Arbeitsanweisungen für genau diese Antwort. Prüfe jede einzelne Anweisung und setze sie gezielt um.
+- Wenn eine Zusatzangabe beispielsweise verlangt, den Bewerter als "Hund" zu bezeichnen, muss diese Formulierung sinngemäß in die Antwort aufgenommen werden.
+- Wenn die Unternehmensvorgaben oder Zusatzangaben "Viele Emojis", "mit Emojis" oder eine vergleichbare Emoji-Vorgabe enthalten, MUSST du mehrere passende Emojis in die Antwort einbauen (typischerweise 2-4). Ignoriere diese Vorgabe nicht.
 - Wenn die Bewertung gemischt ist, erwähne sowohl das Positive als auch die konkrete Kritik.
 - Bei Kritik: verständnisvoll, sachlich und lösungsorientiert reagieren.
-- Keine Fakten, Maßnahmen, Angebote, Versprechen, Gründe oder Entschuldigungen erfinden.
+- Keine Fakten, Maßnahmen, Angebote, Versprechen, Gründe oder Entschuldigungen erfinden. Vom Nutzer ausdrücklich vorgegebene Inhalte oder Anweisungen dürfen und sollen verwendet werden.
 - Keine Namen erfinden.
 - Keine rechtlichen Behauptungen.
 - Keine typischen KI-Floskeln.
@@ -66,6 +69,7 @@ VERBINDLICHE REGELN:
 - Gib ausschließlich die fertige Antwort aus.
 - Keine Anführungszeichen.
 - Die Antwort muss mit einem vollständigen Satz enden.
+- Kontrolliere vor der Ausgabe, ob ALLE konkreten Zusatzangaben tatsächlich umgesetzt wurden. Eine Zusatzangabe darf nicht stillschweigend ignoriert werden.
 
 ANREDE / UNTERNEHMENSVORGABEN:
 ${details}
@@ -138,3 +142,5 @@ function json(data, status = 200) {
     }
   });
 }
+
+  
