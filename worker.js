@@ -25,109 +25,83 @@ export default {
           return json({ error: "GEMINI_API_KEY ist im Cloudflare Worker noch nicht hinterlegt." }, 500);
         }
 
-        const normalizedExtra = String(extra || details || "")
-          .replace(/\s+/g, " ")
-          .trim();
-
-        const extraLower = normalizedExtra.toLowerCase();
-
-        const wantsDu =
-          /\b(anrede\s*:\s*du|per\s+du|schreib\s+per\s+du|du[- ]form)\b/i.test(normalizedExtra);
-
-        const wantsSie =
-          /\b(anrede\s*:\s*sie|per\s+sie|schreib\s+per\s+sie|sie[- ]form)\b/i.test(normalizedExtra);
-
-        const wantsNeutral =
-          /\b(anrede\s*:\s*neutral|neutrale?\s+anrede)\b/i.test(normalizedExtra);
-
-        const wantsManyEmojis =
-          /\bviele\s+emojis?\b/i.test(normalizedExtra);
-
-        const wantsNoEmojis =
-          /\bkeine\s+emojis?\b/i.test(normalizedExtra);
-
-        let addressRule = "Keine spezielle Anredevorgabe.";
-        if (wantsDu) {
-          addressRule = "VERBINDLICH: DU-FORM. Verwende ausschließlich du/dir/dein/deine/dich. Verwende NICHT Sie/Ihnen/Ihr/Ihre.";
-        } else if (wantsSie) {
-          addressRule = "VERBINDLICH: SIE-FORM. Verwende ausschließlich Sie/Ihnen/Ihr/Ihre. Verwende NICHT du/dir/dein/deine/dich.";
-        } else if (wantsNeutral) {
-          addressRule = "VERBINDLICH: NEUTRALE ANREDE. Vermeide direkte Anredeformen du/Sie soweit natürlich möglich.";
-        }
-
-        let emojiRule = "Keine spezielle Emoji-Vorgabe.";
-        if (wantsManyEmojis) {
-          emojiRule = "VERBINDLICH: VIELE EMOJIS. Verwende mindestens 3 passende Emojis.";
-        } else if (wantsNoEmojis) {
-          emojiRule = "VERBINDLICH: KEINE EMOJIS. Verwende 0 Emojis.";
-        }
-
         const prompt = `Du bist der Antwortassistent für ein Unternehmen. Schreibe eine natürliche, individuelle Antwort auf die Kundenbewertung.
 
-DIESE UNTERNEHMENSVORGABEN SIND VERBINDLICH:
-${addressRule}
-${emojiRule}
-- Alle weiteren Angaben unter ZUSÄTZLICHE INFOS sind ebenfalls verbindlich.
-- Wenn mehrere Vorgaben vorhanden sind, müssen ALLE gleichzeitig erfüllt werden.
-- Prüfe deine fertige Antwort vor der Ausgabe gegen jede Vorgabe.
-- Erfinde keine zusätzlichen Unternehmensvorgaben.
-
-ALLGEMEINE REGELN:
+Regeln:
 - Antworte auf Deutsch.
+- Der Schreibstil unter "Ton" ist verbindlich und muss deutlich erkennbar umgesetzt werden:
+  - "Professionell": sachlich, souverän, klar, keine Umgangssprache.
+  - "Freundlich & persönlich": warm, persönlich, natürlich, nahbar.
+  - "Locker & modern": locker, modern, leicht und natürlich, ohne unseriös zu wirken.
+  - "Kurz & direkt": sehr kompakt, direkt, ohne unnötige Einleitung; idealerweise 1-2 Sätze.
+  - "Hochwertig & elegant": besonders gepflegt, ruhig und stilvoll formuliert.
+- Wenn der Ton geändert wird, MUSS sich die Formulierung gegenüber einem anderen Ton erkennbar unterscheiden. Verwende nicht einfach dieselbe Antwort.
+- Die Anrede aus den Unternehmensvorgaben ist verbindlich. Bei "Anrede: Du" ausschließlich du/dir/dich/dein/deine; niemals Sie/Ihnen/Ihr/Ihre.
+- Wenn "Anrede: Sie" angegeben ist, ausschließlich Sie/Ihnen/Ihr/Ihre verwenden.
+- Wenn "Viele Emojis" oder eine ähnliche Emoji-Vorgabe angegeben ist, verwende mehrere passende Emojis, sofern dies zur Bewertung und zum gewählten Ton passt.
 - Passe die Antwort exakt an den Inhalt der Bewertung an.
 - Wenn die Bewertung gemischt ist, erwähne sowohl das Positive als auch die konkrete Kritik.
-- Bei Kritik: verständnisvoll, sachlich und lösungsorientiert reagieren.
+- Bei Kritik: verständnisvoll, sachlich und lösungsorientiert reagieren, ohne Schuldzuweisungen.
 - Keine Fakten, Maßnahmen, Angebote, Versprechen, Gründe oder Entschuldigungen erfinden.
 - Keine Namen erfinden.
 - Keine rechtlichen Behauptungen.
-- Keine typischen KI-Floskeln.
-- Bei sehr kurzen Bewertungen 1–2 natürliche Sätze; sonst ungefähr 2–4 Sätze.
+- Keine KI-Floskeln wie "Vielen Dank für Ihr wertvolles Feedback" oder "Ihre Zufriedenheit steht für uns an erster Stelle".
+- Beginne nicht automatisch mit "Es freut uns sehr".
+- Bei sehr kurzen Bewertungen 1-2 natürliche Sätze; sonst ungefähr 2-4 Sätze.
 - Maximal 80 Wörter.
 - Gib ausschließlich die fertige Antwort aus, ohne Anführungszeichen und ohne Erklärung.
 - Die Antwort muss vollständig sein und mit einem vollständigen Satz enden.
 
-UNTERNEHMEN: ${company}
-BRANCHE: ${industry}
-TON: ${tone}
+Unternehmen: ${company}
+Branche: ${industry}
+VERBINDLICHER SCHREIBSTIL:
+${tone}
 
-ZUSÄTZLICHE INFOS – VERBINDLICH:
-${normalizedExtra || "Keine zusätzlichen Vorgaben."}
+UNTERNEHMENSVORGABEN:
+${details}
 
-KUNDENBEWERTUNG:
+Kundenbewertung:
 ${review}
+${extra ? `
 
-Erstelle jetzt die Antwort.`;
+ZUSATZ:
+${extra}` : ""}`;
 
-        const requestGemini = async (promptText) => {
-          return fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "x-goog-api-key": env.GEMINI_API_KEY
-              },
-              body: JSON.stringify({
-                systemInstruction: {
-                  parts: [{
-                    text: "Unternehmensvorgaben in ZUSÄTZLICHE INFOS sind verbindlich. Halte insbesondere Anrede- und Emoji-Vorgaben exakt ein."
-                  }]
-                },
-                contents: [{ parts: [{ text: promptText }] }],
-                generationConfig: {
+        const response = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": env.GEMINI_API_KEY
+            },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
                   maxOutputTokens: 500,
                   thinkingConfig: { thinkingLevel: "minimal" }
-                }
-              })
-            }
-          );
-        };
+              }
+            })
+          }
+        );
 
-        const extractText = async (response) => {
-          return json({
-          text,
-          finishReason: null
-        });
+        const data = await response.json();
+        if (!response.ok) {
+          return json(
+            { error: data?.error?.message || "Gemini API Fehler" },
+            response.status
+          );
+        }
+
+        const candidate = data?.candidates?.[0];
+        const text = candidate?.content?.parts
+          ?.map(part => part.text || "")
+          .join("")
+          .trim();
+
+        if (!text) {
+          return json({ error: "Gemini hat keine Antwort zurückgegeben." }, 502);
+        }
 
         return json({
           text,
