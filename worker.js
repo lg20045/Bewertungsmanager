@@ -25,26 +25,54 @@ export default {
           return json({ error: "GEMINI_API_KEY ist im Cloudflare Worker noch nicht hinterlegt." }, 500);
         }
 
-        const prompt = `Du bist der Antwortassistent für ein Unternehmen.
+        const normalizedExtra = String(extra || details || "")
+          .replace(/\s+/g, " ")
+          .trim();
 
-VERBINDLICHE REGELN:
-1. Schreibe ausschließlich die fertige Antwort auf die Kundenbewertung.
-2. Die Angaben im Block "ZUSÄTZLICHE INFOS – VERBINDLICH" sind konkrete Anweisungen des Unternehmens. Sie haben höchste Priorität und MÜSSEN umgesetzt werden.
-3. Ignoriere keine einzelne Vorgabe aus diesem Block. Prüfe vor der Ausgabe jede Vorgabe noch einmal.
-4. Wenn dort mehrere Vorgaben stehen, müssen ALLE gleichzeitig erfüllt werden.
-5. Erfinde keine Vorgaben, die nicht dort stehen.
+        const extraLower = normalizedExtra.toLowerCase();
 
-ANREDE:
-- Steht dort "Anrede: Sie", verwende konsequent Sie/Ihnen/Ihr/Ihre und niemals du/dir/dein/dich.
-- Steht dort "Anrede: Du" oder "per Du", verwende konsequent du/dir/dein/dich und niemals Sie/Ihnen/Ihr/Ihre.
-- Steht dort "Anrede: Neutral", vermeide direkte Anredeformen, soweit natürlich möglich.
+        const wantsDu =
+          /\b(anrede\s*:\s*du|per\s+du|schreib\s+per\s+du|du[- ]form)\b/i.test(normalizedExtra);
 
-EMOJIS:
-- Steht dort "Viele Emojis", MUSST du mehrere passende Emojis in die Antwort einbauen (mindestens 3, sinnvoll verteilt).
-- Steht dort "Keine Emojis", darfst du kein Emoji verwenden.
-- Steht dort eine konkrete Emoji-Vorgabe, befolge genau diese.
+        const wantsSie =
+          /\b(anrede\s*:\s*sie|per\s+sie|schreib\s+per\s+sie|sie[- ]form)\b/i.test(normalizedExtra);
 
-INHALT:
+        const wantsNeutral =
+          /\b(anrede\s*:\s*neutral|neutrale?\s+anrede)\b/i.test(normalizedExtra);
+
+        const wantsManyEmojis =
+          /\bviele\s+emojis?\b/i.test(normalizedExtra);
+
+        const wantsNoEmojis =
+          /\bkeine\s+emojis?\b/i.test(normalizedExtra);
+
+        let addressRule = "Keine spezielle Anredevorgabe.";
+        if (wantsDu) {
+          addressRule = "VERBINDLICH: DU-FORM. Verwende ausschließlich du/dir/dein/deine/dich. Verwende NICHT Sie/Ihnen/Ihr/Ihre.";
+        } else if (wantsSie) {
+          addressRule = "VERBINDLICH: SIE-FORM. Verwende ausschließlich Sie/Ihnen/Ihr/Ihre. Verwende NICHT du/dir/dein/deine/dich.";
+        } else if (wantsNeutral) {
+          addressRule = "VERBINDLICH: NEUTRALE ANREDE. Vermeide direkte Anredeformen du/Sie soweit natürlich möglich.";
+        }
+
+        let emojiRule = "Keine spezielle Emoji-Vorgabe.";
+        if (wantsManyEmojis) {
+          emojiRule = "VERBINDLICH: VIELE EMOJIS. Verwende mindestens 3 passende Emojis.";
+        } else if (wantsNoEmojis) {
+          emojiRule = "VERBINDLICH: KEINE EMOJIS. Verwende 0 Emojis.";
+        }
+
+        const prompt = `Du bist der Antwortassistent für ein Unternehmen. Schreibe eine natürliche, individuelle Antwort auf die Kundenbewertung.
+
+DIESE UNTERNEHMENSVORGABEN SIND VERBINDLICH:
+${addressRule}
+${emojiRule}
+- Alle weiteren Angaben unter ZUSÄTZLICHE INFOS sind ebenfalls verbindlich.
+- Wenn mehrere Vorgaben vorhanden sind, müssen ALLE gleichzeitig erfüllt werden.
+- Prüfe deine fertige Antwort vor der Ausgabe gegen jede Vorgabe.
+- Erfinde keine zusätzlichen Unternehmensvorgaben.
+
+ALLGEMEINE REGELN:
 - Antworte auf Deutsch.
 - Passe die Antwort exakt an den Inhalt der Bewertung an.
 - Wenn die Bewertung gemischt ist, erwähne sowohl das Positive als auch die konkrete Kritik.
@@ -61,54 +89,45 @@ INHALT:
 UNTERNEHMEN: ${company}
 BRANCHE: ${industry}
 TON: ${tone}
+
 ZUSÄTZLICHE INFOS – VERBINDLICH:
-${extra || details || "Keine zusätzlichen Vorgaben."}
+${normalizedExtra || "Keine zusätzlichen Vorgaben."}
 
 KUNDENBEWERTUNG:
 ${review}
 
-Erstelle jetzt die Antwort und beachte JEDE Vorgabe aus "ZUSÄTZLICHE INFOS – VERBINDLICH".`;
+Erstelle jetzt die Antwort.`;
 
-        const response = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-goog-api-key": env.GEMINI_API_KEY
-            },
-            body: JSON.stringify({
-              systemInstruction: {
-                parts: [{
-                  text: "Befolge die im Nutzerprompt enthaltenen Unternehmensvorgaben unter ZUSÄTZLICHE INFOS – VERBINDLICH vollständig. Keine dieser Vorgaben darf ignoriert werden."
-                }]
+        const requestGemini = async (promptText) => {
+          return fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": env.GEMINI_API_KEY
               },
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
+              body: JSON.stringify({
+                systemInstruction: {
+                  parts: [{
+                    text: "Unternehmensvorgaben in ZUSÄTZLICHE INFOS sind verbindlich. Halte insbesondere Anrede- und Emoji-Vorgaben exakt ein."
+                  }]
+                },
+                contents: [{ parts: [{ text: promptText }] }],
+                generationConfig: {
                   maxOutputTokens: 500,
                   thinkingConfig: { thinkingLevel: "minimal" }
-              }
-            })
-          }
-        );
-
-        const data = await response.json();
-        if (!response.ok) {
-          return json(
-            { error: data?.error?.message || "Gemini API Fehler" },
-            response.status
+                }
+              })
+            }
           );
-        }
+        };
 
-        const candidate = data?.candidates?.[0];
-        const text = candidate?.content?.parts
-          ?.map(part => part.text || "")
-          .join("")
-          .trim();
-
-        if (!text) {
-          return json({ error: "Gemini hat keine Antwort zurückgegeben." }, 502);
-        }
+        const extractText = async (response) => {
+          return json({
+          text,
+          finishReason: null
+        });
 
         return json({
           text,
