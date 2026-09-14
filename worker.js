@@ -1,8 +1,8 @@
-export default {
+
+  export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // API endpoint for the BewertungsManager frontend.
     if (url.pathname === "/api/generate") {
       if (request.method !== "POST") {
         return json({ error: "Methode nicht erlaubt." }, 405);
@@ -10,6 +10,7 @@ export default {
 
       try {
         const body = await request.json();
+
         const review = String(body.review || "").trim();
         const company = String(body.company || "").trim() || "nicht angegeben";
         const industry = String(body.industry || "Andere").trim();
@@ -21,98 +22,109 @@ export default {
           return json({ error: "Bitte zuerst eine Bewertung eingeben." }, 400);
         }
 
-        if (!env.GEMINI_API_KEY) {
-          return json({ error: "GEMINI_API_KEY ist im Cloudflare Worker noch nicht hinterlegt." }, 500);
+        if (!env.AI) {
+          return json({
+            error: "Cloudflare Workers AI ist im Worker noch nicht verbunden."
+          }, 500);
         }
+
+        const toneRules = {
+          "Professionell":
+            "sachlich, souverän, klar und professionell; keine Umgangssprache",
+          "Freundlich & persönlich":
+            "warm, persönlich, menschlich und freundlich; nicht steif",
+          "Locker & modern":
+            "locker, modern, natürlich und unkompliziert; darf leicht umgangssprachlich sein",
+          "Kurz & direkt":
+            "sehr kompakt, direkt und auf den Punkt; möglichst 1-2 Sätze",
+          "Hochwertig & elegant":
+            "stilvoll, ruhig, hochwertig und besonders sauber formuliert"
+        };
+
+        const toneInstruction =
+          toneRules[tone] || toneRules["Professionell"];
 
         const prompt = `Du bist der Antwortassistent für ein Unternehmen. Schreibe eine natürliche, individuelle Antwort auf die Kundenbewertung.
 
-Regeln:
+VERBINDLICHER SCHREIBSTIL:
+- Gewählter Ton: ${tone}
+- Umsetzung: ${toneInstruction}
+
+VERBINDLICHE REGELN:
 - Antworte auf Deutsch.
-- Der Schreibstil unter "Ton" ist verbindlich und muss deutlich erkennbar umgesetzt werden:
-  - "Professionell": sachlich, souverän, klar, keine Umgangssprache.
-  - "Freundlich & persönlich": warm, persönlich, natürlich, nahbar.
-  - "Locker & modern": locker, modern, leicht und natürlich, ohne unseriös zu wirken.
-  - "Kurz & direkt": sehr kompakt, direkt, ohne unnötige Einleitung; idealerweise 1-2 Sätze.
-  - "Hochwertig & elegant": besonders gepflegt, ruhig und stilvoll formuliert.
-- Wenn der Ton geändert wird, MUSS sich die Formulierung gegenüber einem anderen Ton erkennbar unterscheiden. Verwende nicht einfach dieselbe Antwort.
-- Die Anrede aus den Unternehmensvorgaben ist verbindlich. Bei "Anrede: Du" ausschließlich du/dir/dich/dein/deine; niemals Sie/Ihnen/Ihr/Ihre.
-- Wenn "Anrede: Sie" angegeben ist, ausschließlich Sie/Ihnen/Ihr/Ihre verwenden.
-- Wenn "Viele Emojis" oder eine ähnliche Emoji-Vorgabe angegeben ist, verwende mehrere passende Emojis, sofern dies zur Bewertung und zum gewählten Ton passt.
 - Passe die Antwort exakt an den Inhalt der Bewertung an.
 - Wenn die Bewertung gemischt ist, erwähne sowohl das Positive als auch die konkrete Kritik.
-- Bei Kritik: verständnisvoll, sachlich und lösungsorientiert reagieren, ohne Schuldzuweisungen.
+- Bei Kritik: verständnisvoll, sachlich und lösungsorientiert reagieren.
 - Keine Fakten, Maßnahmen, Angebote, Versprechen, Gründe oder Entschuldigungen erfinden.
 - Keine Namen erfinden.
 - Keine rechtlichen Behauptungen.
-- Keine KI-Floskeln wie "Vielen Dank für Ihr wertvolles Feedback" oder "Ihre Zufriedenheit steht für uns an erster Stelle".
-- Beginne nicht automatisch mit "Es freut uns sehr".
+- Keine typischen KI-Floskeln.
+- Nicht automatisch mit "Vielen Dank für Ihr wertvolles Feedback" beginnen.
+- Nicht automatisch mit "Es freut uns sehr" beginnen.
 - Bei sehr kurzen Bewertungen 1-2 natürliche Sätze; sonst ungefähr 2-4 Sätze.
 - Maximal 80 Wörter.
-- Gib ausschließlich die fertige Antwort aus, ohne Anführungszeichen und ohne Erklärung.
-- Die Antwort muss vollständig sein und mit einem vollständigen Satz enden.
+- Gib ausschließlich die fertige Antwort aus.
+- Keine Anführungszeichen.
+- Die Antwort muss mit einem vollständigen Satz enden.
+
+ANREDE / UNTERNEHMENSVORGABEN:
+${details}
 
 Unternehmen: ${company}
 Branche: ${industry}
-VERBINDLICHER SCHREIBSTIL:
-${tone}
 
-UNTERNEHMENSVORGABEN:
-${details}
+${extra ? `Zusätzliche Unternehmensvorgaben:
+${extra}
 
-Kundenbewertung:
-${review}
-${extra ? `
+` : ""}Kundenbewertung:
+${review}`;
 
-ZUSATZ:
-${extra}` : ""}`;
-
-        const response = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
+        const response = await env.AI.run(
+          "@cf/google/gemma-4-26b-a4b-it",
           {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-goog-api-key": env.GEMINI_API_KEY
-            },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                  maxOutputTokens: 500,
-                  thinkingConfig: { thinkingLevel: "minimal" }
+            messages: [
+              {
+                role: "system",
+                content:
+                  "Du bist ein sehr guter deutscher Kundenservice-Texter. Befolge die Vorgaben des Nutzers exakt."
+              },
+              {
+                role: "user",
+                content: prompt
               }
-            })
+            ],
+            chat_template_kwargs: {
+              enable_thinking: false
+            },
+            max_tokens: 300
           }
         );
 
-        const data = await response.json();
-        if (!response.ok) {
-          return json(
-            { error: data?.error?.message || "Gemini API Fehler" },
-            response.status
-          );
-        }
-
-        const candidate = data?.candidates?.[0];
-        const text = candidate?.content?.parts
-          ?.map(part => part.text || "")
-          .join("")
-          .trim();
+        const text =
+          response?.choices?.[0]?.message?.content?.trim() ||
+          response?.response?.trim() ||
+          "";
 
         if (!text) {
-          return json({ error: "Gemini hat keine Antwort zurückgegeben." }, 502);
+          return json(
+            { error: "Cloudflare AI hat keine Antwort zurückgegeben." },
+            502
+          );
         }
 
         return json({
           text,
-          finishReason: candidate?.finishReason || null
+          model: "@cf/google/gemma-4-26b-a4b-it",
+          provider: "Cloudflare Workers AI"
         });
       } catch (error) {
-        return json({ error: error?.message || "Unbekannter Fehler." }, 500);
+        return json(
+          { error: error?.message || "Cloudflare AI Fehler." },
+          500
+        );
       }
     }
 
-    // Everything else is served by Cloudflare's static assets.
     return env.ASSETS.fetch(request);
   }
 };
