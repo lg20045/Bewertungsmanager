@@ -25,41 +25,49 @@ export default {
           return json({ error: "GEMINI_API_KEY ist im Cloudflare Worker noch nicht hinterlegt." }, 500);
         }
 
-        const prompt = `Du bist der Antwortassistent für ein Unternehmen. Schreibe eine natürliche, individuelle Antwort auf die Kundenbewertung.
+        const prompt = `Du bist der Antwortassistent für ein Unternehmen.
 
-Regeln:
+VERBINDLICHE REGELN:
+1. Schreibe ausschließlich die fertige Antwort auf die Kundenbewertung.
+2. Die Angaben im Block "ZUSÄTZLICHE INFOS – VERBINDLICH" sind konkrete Anweisungen des Unternehmens. Sie haben höchste Priorität und MÜSSEN umgesetzt werden.
+3. Ignoriere keine einzelne Vorgabe aus diesem Block. Prüfe vor der Ausgabe jede Vorgabe noch einmal.
+4. Wenn dort mehrere Vorgaben stehen, müssen ALLE gleichzeitig erfüllt werden.
+5. Erfinde keine Vorgaben, die nicht dort stehen.
+
+ANREDE:
+- Steht dort "Anrede: Sie", verwende konsequent Sie/Ihnen/Ihr/Ihre und niemals du/dir/dein/dich.
+- Steht dort "Anrede: Du" oder "per Du", verwende konsequent du/dir/dein/dich und niemals Sie/Ihnen/Ihr/Ihre.
+- Steht dort "Anrede: Neutral", vermeide direkte Anredeformen, soweit natürlich möglich.
+
+EMOJIS:
+- Steht dort "Viele Emojis", MUSST du mehrere passende Emojis in die Antwort einbauen (mindestens 3, sinnvoll verteilt).
+- Steht dort "Keine Emojis", darfst du kein Emoji verwenden.
+- Steht dort eine konkrete Emoji-Vorgabe, befolge genau diese.
+
+INHALT:
 - Antworte auf Deutsch.
-- Die Angaben unter "Zusätzliche Infos" sind verbindliche Vorgaben des Unternehmens und MÜSSEN bei jeder Antwort berücksichtigt werden.
-- Behandle "Zusätzliche Infos" als individuelle Anweisungen mit hoher Priorität. Wenn dort z. B. "Schreib per Du", "keine Emojis", "kurz antworten" oder eine bestimmte Formulierung steht, MUSST du diese Vorgabe entsprechend umsetzen.
-- Wenn sich eine Vorgabe aus "Zusätzliche Infos" auf die Anrede bezieht und dort "Du" oder "per Du" steht, MUSST du konsequent die Du-Form verwenden: "dir", "du", "dein", "dich" usw. Verwende dann NICHT "Sie", "Ihnen", "Ihr" oder "Ihre".
-- Wenn dort "Sie" steht, MUSST du konsequent die Sie-Form verwenden.
-- Wenn dort "Neutral" steht, vermeide direkte Anredeformen wie "du" oder "Sie", soweit das natürlich möglich ist.
-- Wenn keine Anrede angegeben ist, verwende die natürliche Anrede aus dem Kontext bzw. standardmäßig die Sie-Form.
-- Erfinde keine zusätzlichen Unternehmensvorgaben, die nicht in "Zusätzliche Infos" stehen.
 - Passe die Antwort exakt an den Inhalt der Bewertung an.
 - Wenn die Bewertung gemischt ist, erwähne sowohl das Positive als auch die konkrete Kritik.
-- Bei Kritik: verständnisvoll, sachlich und lösungsorientiert reagieren, ohne Schuldzuweisungen.
+- Bei Kritik: verständnisvoll, sachlich und lösungsorientiert reagieren.
 - Keine Fakten, Maßnahmen, Angebote, Versprechen, Gründe oder Entschuldigungen erfinden.
 - Keine Namen erfinden.
 - Keine rechtlichen Behauptungen.
-- Keine KI-Floskeln wie "Vielen Dank für Ihr wertvolles Feedback" oder "Ihre Zufriedenheit steht für uns an erster Stelle".
-- Beginne nicht automatisch mit "Es freut uns sehr".
-- Bei sehr kurzen Bewertungen 1-2 natürliche Sätze; sonst ungefähr 2-4 Sätze.
+- Keine typischen KI-Floskeln.
+- Bei sehr kurzen Bewertungen 1–2 natürliche Sätze; sonst ungefähr 2–4 Sätze.
 - Maximal 80 Wörter.
 - Gib ausschließlich die fertige Antwort aus, ohne Anführungszeichen und ohne Erklärung.
 - Die Antwort muss vollständig sein und mit einem vollständigen Satz enden.
 
-Unternehmen: ${company}
-Branche: ${industry}
-Ton: ${tone}
-Zusätzliche Infos: ${details}
+UNTERNEHMEN: ${company}
+BRANCHE: ${industry}
+TON: ${tone}
+ZUSÄTZLICHE INFOS – VERBINDLICH:
+${extra || details || "Keine zusätzlichen Vorgaben."}
 
-Kundenbewertung:
+KUNDENBEWERTUNG:
 ${review}
-${extra ? `
 
-ZUSATZ:
-${extra}` : ""}`;
+Erstelle jetzt die Antwort und beachte JEDE Vorgabe aus "ZUSÄTZLICHE INFOS – VERBINDLICH".`;
 
         const response = await fetch(
           "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
@@ -70,6 +78,11 @@ ${extra}` : ""}`;
               "x-goog-api-key": env.GEMINI_API_KEY
             },
             body: JSON.stringify({
+              systemInstruction: {
+                parts: [{
+                  text: "Befolge die im Nutzerprompt enthaltenen Unternehmensvorgaben unter ZUSÄTZLICHE INFOS – VERBINDLICH vollständig. Keine dieser Vorgaben darf ignoriert werden."
+                }]
+              },
               contents: [{ parts: [{ text: prompt }] }],
               generationConfig: {
                   maxOutputTokens: 500,
