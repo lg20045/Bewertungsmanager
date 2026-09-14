@@ -13,7 +13,6 @@ export default {
         const review = String(body.review || "").trim();
         const company = String(body.company || "").trim() || "nicht angegeben";
         const industry = String(body.industry || "Andere").trim();
-        const tone = String(body.tone || "Professionell").trim();
         const details = String(body.details || "").trim() || "keine";
         const extra = String(body.extra || "").trim();
 
@@ -27,32 +26,12 @@ export default {
           }, 500);
         }
 
-        const toneRules = {
-          "Professionell":
-            "sachlich, souverän, klar und professionell; keine Umgangssprache",
-          "Freundlich & persönlich":
-            "warm, persönlich, menschlich und freundlich; nicht steif",
-          "Locker & modern":
-            "locker, modern, natürlich und unkompliziert; darf leicht umgangssprachlich sein",
-          "Kurz & direkt":
-            "sehr kompakt, direkt und auf den Punkt; möglichst 1-2 Sätze",
-          "Hochwertig & elegant":
-            "stilvoll, ruhig, hochwertig und besonders sauber formuliert"
-        };
-
-        const toneInstruction =
-          toneRules[tone] || toneRules["Professionell"];
-
         const prompt = `Du bist der Antwortassistent für ein Unternehmen. Schreibe eine natürliche, individuelle Antwort auf die Kundenbewertung.
-
-VERBINDLICHER SCHREIBSTIL:
-- Gewählter Ton: ${tone}
-- Umsetzung: ${toneInstruction}
 
 VERBINDLICHE REGELN:
 - Antworte auf Deutsch.
 - Passe die Antwort exakt an den Inhalt der Bewertung an.
-- Jede konkrete Zusatzangabe oder Anweisung des Nutzers ist verbindlich und muss in der fertigen Antwort umgesetzt werden, sofern sie nicht einer anderen verbindlichen Vorgabe widerspricht.
+- Jede konkrete Zusatzangabe oder Anweisung des Nutzers ist verbindlich und muss in der fertigen Antwort umgesetzt werden. Sie hat Vorrang vor allgemeinen Stilpräferenzen.
 - Zusatzangaben sind keine bloßen Informationen, sondern Arbeitsanweisungen für genau diese Antwort. Prüfe jede einzelne Anweisung und setze sie gezielt um.
 - Wenn eine Zusatzangabe beispielsweise verlangt, den Bewerter als "Hund" zu bezeichnen, muss diese Formulierung sinngemäß in die Antwort aufgenommen werden.
 - Zusatzangaben sind verbindliche Arbeitsanweisungen. Prüfe JEDE einzelne Zusatzangabe und setze sie konkret in der fertigen Antwort um. Ignoriere keine konkrete Vorgabe.
@@ -67,14 +46,15 @@ VERBINDLICHE REGELN:
 - Nicht automatisch mit "Vielen Dank für Ihr wertvolles Feedback" beginnen.
 - Nicht automatisch mit "Es freut uns sehr" beginnen.
 - Bei sehr kurzen Bewertungen 1-2 natürliche Sätze; sonst ungefähr 2-4 Sätze.
-- Maximal 80 Wörter.
+- Bei "Schreib kurz": maximal etwa 40 Wörter. Bei "Schreib lang": etwa 60-120 Wörter. Ohne Längenangabe: etwa 2-4 Sätze und maximal 100 Wörter.
 - Gib ausschließlich die fertige Antwort aus.
 - Keine Anführungszeichen.
 - Prüfe vor der Ausgabe nochmals jede Zusatzangabe und die Anrede. Korrigiere die Antwort, falls eine Vorgabe nicht umgesetzt wurde.
 - Die Antwort muss mit einem vollständigen Satz enden.
+- Wenn mehrere Zusatzangaben vorhanden sind, müssen ALLE gleichzeitig berücksichtigt werden.
 - Kontrolliere vor der Ausgabe, ob ALLE konkreten Zusatzangaben tatsächlich umgesetzt wurden. Eine Zusatzangabe darf nicht stillschweigend ignoriert werden.
 
-ANREDE / UNTERNEHMENSVORGABEN:
+ZUSATZANGABEN DES NUTZERS (VERBINDLICH):
 ${details}
 
 Unternehmen: ${company}
