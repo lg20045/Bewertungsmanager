@@ -55,7 +55,9 @@ VERBINDLICHE REGELN:
 - Jede konkrete Zusatzangabe oder Anweisung des Nutzers ist verbindlich und muss in der fertigen Antwort umgesetzt werden, sofern sie nicht einer anderen verbindlichen Vorgabe widerspricht.
 - Zusatzangaben sind keine bloßen Informationen, sondern Arbeitsanweisungen für genau diese Antwort. Prüfe jede einzelne Anweisung und setze sie gezielt um.
 - Wenn eine Zusatzangabe beispielsweise verlangt, den Bewerter als "Hund" zu bezeichnen, muss diese Formulierung sinngemäß in die Antwort aufgenommen werden.
-- Wenn die Unternehmensvorgaben oder Zusatzangaben "Viele Emojis", "mit Emojis" oder eine vergleichbare Emoji-Vorgabe enthalten, MUSST du mehrere passende Emojis in die Antwort einbauen (typischerweise 2-4). Ignoriere diese Vorgabe nicht.
+- Zusatzangaben sind verbindliche Arbeitsanweisungen. Prüfe JEDE einzelne Zusatzangabe und setze sie konkret in der fertigen Antwort um. Ignoriere keine konkrete Vorgabe.
+- Die Anrede-Vorgabe ist ebenfalls verbindlich: Bei "Anrede: Sie" MUSST du durchgehend Sie/Ihnen/Ihr verwenden und darfst NICHT du/dich/dir/dein verwenden. Bei "Anrede: Du" MUSST du durchgehend du/dir/dich/dein verwenden. Bei "Neutral" keine künstliche Anrede erzwingen.
+- Wenn die Unternehmensvorgaben oder Zusatzangaben "Viele Emojis", "mit Emojis" oder eine vergleichbare Emoji-Vorgabe enthalten, MUSST du mehrere passende Emojis in die Antwort einbauen (typischerweise 2-4). Wenn ausdrücklich "keine Emojis" vorgegeben ist, darfst du KEINE Emojis verwenden.
 - Wenn die Bewertung gemischt ist, erwähne sowohl das Positive als auch die konkrete Kritik.
 - Bei Kritik: verständnisvoll, sachlich und lösungsorientiert reagieren.
 - Keine Fakten, Maßnahmen, Angebote, Versprechen, Gründe oder Entschuldigungen erfinden. Vom Nutzer ausdrücklich vorgegebene Inhalte oder Anweisungen dürfen und sollen verwendet werden.
@@ -68,6 +70,7 @@ VERBINDLICHE REGELN:
 - Maximal 80 Wörter.
 - Gib ausschließlich die fertige Antwort aus.
 - Keine Anführungszeichen.
+- Prüfe vor der Ausgabe nochmals jede Zusatzangabe und die Anrede. Korrigiere die Antwort, falls eine Vorgabe nicht umgesetzt wurde.
 - Die Antwort muss mit einem vollständigen Satz enden.
 - Kontrolliere vor der Ausgabe, ob ALLE konkreten Zusatzangaben tatsächlich umgesetzt wurden. Eine Zusatzangabe darf nicht stillschweigend ignoriert werden.
 
@@ -142,5 +145,3 @@ function json(data, status = 200) {
     }
   });
 }
-
-  
