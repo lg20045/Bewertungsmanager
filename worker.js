@@ -29,6 +29,13 @@ export default {
 
 Regeln:
 - Antworte auf Deutsch.
+- Die Angaben unter "Zusätzliche Infos" sind verbindliche Vorgaben des Unternehmens und MÜSSEN bei jeder Antwort berücksichtigt werden.
+- Behandle "Zusätzliche Infos" als individuelle Anweisungen mit hoher Priorität. Wenn dort z. B. "Schreib per Du", "keine Emojis", "kurz antworten" oder eine bestimmte Formulierung steht, MUSST du diese Vorgabe entsprechend umsetzen.
+- Wenn sich eine Vorgabe aus "Zusätzliche Infos" auf die Anrede bezieht und dort "Du" oder "per Du" steht, MUSST du konsequent die Du-Form verwenden: "dir", "du", "dein", "dich" usw. Verwende dann NICHT "Sie", "Ihnen", "Ihr" oder "Ihre".
+- Wenn dort "Sie" steht, MUSST du konsequent die Sie-Form verwenden.
+- Wenn dort "Neutral" steht, vermeide direkte Anredeformen wie "du" oder "Sie", soweit das natürlich möglich ist.
+- Wenn keine Anrede angegeben ist, verwende die natürliche Anrede aus dem Kontext bzw. standardmäßig die Sie-Form.
+- Erfinde keine zusätzlichen Unternehmensvorgaben, die nicht in "Zusätzliche Infos" stehen.
 - Passe die Antwort exakt an den Inhalt der Bewertung an.
 - Wenn die Bewertung gemischt ist, erwähne sowohl das Positive als auch die konkrete Kritik.
 - Bei Kritik: verständnisvoll, sachlich und lösungsorientiert reagieren, ohne Schuldzuweisungen.
